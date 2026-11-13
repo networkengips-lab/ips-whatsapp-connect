@@ -2,45 +2,151 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>IPS EduHub WhatsApp Connect</title>
-<style>
-body {
-  font-family: Arial, sans-serif;
-  background: #f3f6fb;
-  margin: 0;
-  padding: 30px 15px;
-  text-align: center;
-}
-.container {
-  max-width: 480px;
-  margin: 40px auto;
-  background: white;
-  padding: 30px;
-  border-radius: 14px;
-}
-h1 { color: #174c87; }
-button {
-  background: #16864a;
-  color: white;
-  border: 0;
-  padding: 14px 22px;
-  border-radius: 7px;
-  font-size: 16px;
-}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IPS EduHub | WhatsApp Connect</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f7fb;
+      color: #243247;
+    }
+    .container {
+      max-width: 650px;
+      margin: 70px auto;
+      padding: 35px;
+      background: white;
+      border-radius: 14px;
+      text-align: center;
+      box-shadow: 0 5px 25px #0001;
+    }
+    h1 { color: #126b48; }
+    .connect {
+      background: #1877f2;
+      color: white;
+      border: 0;
+      padding: 15px 25px;
+      border-radius: 7px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .connect:disabled {
+      opacity: .6;
+      cursor: wait;
+    }
+    #status {
+      margin-top: 25px;
+      padding: 12px;
+      background: #f1f5f9;
+      border-radius: 7px;
+      overflow-wrap: anywhere;
+    }
+  </style>
 </head>
+
 <body>
+
 <div class="container">
-<h1>IPS EduHub</h1>
-<h2>WhatsApp Connect</h2>
-<p>Management Portal</p>
-<p>Connect your existing WhatsApp Business account.</p>
-<button onclick="alert('Integration will be activated in the next step.')">
-Connect WhatsApp
-</button>
-<p>IPS EduHub | Secure Connection Portal</p>
+  <h1>IPS EduHub</h1>
+  <h2>WhatsApp Connect</h2>
+
+  <p>Connect your WhatsApp Business account securely.</p>
+
+  <button id="connectBtn" class="connect"
+          onclick="launchWhatsAppSignup()" disabled>
+    Loading Meta SDK...
+  </button>
+
+  <div id="status">Initializing connection...</div>
 </div>
+
+<script>
+  const META_APP_ID = '1076887082020398';
+  const CONFIG_ID = '4706138649669420';
+
+  let sdkReady = false;
+
+  function showStatus(message) {
+    document.getElementById('status').textContent = message;
+  }
+
+  window.fbAsyncInit = function () {
+    FB.init({
+      appId: META_APP_ID,
+      autoLogAppEvents: true,
+      xfbml: true,
+      version: 'v23.0'
+    });
+
+    sdkReady = true;
+
+    document.getElementById('connectBtn').disabled = false;
+    document.getElementById('connectBtn').textContent =
+      'Connect WhatsApp Business';
+
+    showStatus('Ready to connect.');
+  };
+
+  function launchWhatsAppSignup() {
+    if (!sdkReady) {
+      showStatus('Meta SDK is not ready. Please refresh.');
+      return;
+    }
+
+    showStatus('Opening Meta WhatsApp signup...');
+
+    FB.login(function(response) {
+      if (response.authResponse && response.authResponse.code) {
+        showStatus(
+          'Authorization successful. Secure server-side code exchange is required next.'
+        );
+
+        console.log('Authorization code received.');
+        // Send the code to a secure backend.
+        // Never store access tokens or authorization codes in public frontend code.
+
+      } else {
+        showStatus('Signup cancelled or authorization was not completed.');
+      }
+    }, {
+      config_id: CONFIG_ID,
+      response_type: 'code',
+      override_default_response_type: true,
+      extras: {
+        setup: {},
+        featureType: 'whatsapp_business_app_onboarding'
+      }
+    });
+  }
+
+  window.addEventListener('message', function(event) {
+    if (event.origin !== 'https://www.facebook.com') return;
+
+    try {
+      const data = JSON.parse(event.data);
+
+      if (data.type === 'WA_EMBEDDED_SIGNUP') {
+        if (data.event === 'FINISH') {
+          showStatus('WhatsApp onboarding completed. Backend processing is pending.');
+          console.log('Signup information received:', data.data);
+        } else if (data.event === 'CANCEL') {
+          showStatus('WhatsApp onboarding was cancelled.');
+        } else if (data.event === 'ERROR') {
+          showStatus('Meta reported an onboarding error.');
+        }
+      }
+    } catch (error) {
+      // Ignore unrelated Facebook messages.
+    }
+  });
+</script>
+
+<script async defer crossorigin="anonymous"
+  src="https://connect.facebook.net/en_US/sdk.js">
+</script>
+
 </body>
 </html>
